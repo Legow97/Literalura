@@ -1,14 +1,13 @@
 package com.alura.demo.main;
 
+import com.alura.demo.Repository.AuthorRepository;
 import com.alura.demo.Repository.BookRepository;
-import com.alura.demo.model.Book;
-import com.alura.demo.model.DataBook;
-import com.alura.demo.model.DataBooksSearch;
+import com.alura.demo.model.*;
 import com.alura.demo.service.ConsumeAPI;
 import com.alura.demo.service.DataConversor;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Principal {
     private Scanner scanner = new Scanner(System.in);
@@ -16,10 +15,17 @@ public class Principal {
     private final String URL_BASE = "https://gutendex.com/books/";
     private DataConversor conversor = new DataConversor();
     private List<DataBook> dataBooks = new ArrayList<>();
-    private BookRepository repository;
+    private BookRepository bookRepository;
+    private AuthorRepository authorRepository;
+    private String nameBook= null;
+    private List<Book> books;
 
-    public Principal(BookRepository repository) {
-        this.repository = repository;
+    private List<Author> authors;
+
+    public Principal(BookRepository bookRepository, AuthorRepository authorRepository) {
+
+        this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
     }
 
     public void showMenu() {
@@ -29,6 +35,9 @@ public class Principal {
             var menu = """
                     1 - Buscar Libro por titulo
                     2 - Listar todos los libros
+                    3 - Listar autores registrados
+                    4 - Listar autores vivos en un determinado año
+                    5 - Listar libros por idioma
                     0 - Salir 
                     """;
 
@@ -43,6 +52,15 @@ public class Principal {
             case 2:
                 getAllBooks();
                 break;
+            case 3:
+                getAllActors();
+                break;
+            case 4:
+                liveActhors();
+                break;
+            case 5:
+                getBooksForIdiom();
+                break;
             case 0:
                 System.out.println("Cerrando aplicación ...");
                 break;
@@ -53,10 +71,35 @@ public class Principal {
         }
     }
 
+    private void getBooksForIdiom() {
+        System.out.println("Introduce el idioma para buscar los libros:");
+        var idioms = """
+                    es - español
+                    en - inglés
+                    fr - francés
+                    pt - protugué
+
+                """;
+        System.out.println(idioms);
+        String idiom  = scanner.nextLine();
+        try{
+            Idiom idioma = Idiom.fromString(idiom);
+
+            books = bookRepository.findByLanguages(idioma);
+            books.forEach(System.out::println);
+        }catch (IllegalArgumentException e){
+            System.out.println("Idioma no encontrado" + "\n"+"Inserte una opción válida ");
+        }
+
+    }
+
+    private void getAllActors() {
+        authors = authorRepository.findAll();
+        authors.forEach(System.out::println);
+    }
+
 
     private DataBook searchBookForName() {
-        System.out.println("Nombre del libro que desea buscar:");
-        var nameBook = scanner.nextLine();
         var json = consumeAPI.getData(URL_BASE + "?search=" + nameBook.replace(" ","+")); //"https://gutendex.com/books/?search=Romeo+and+Juliet"
         var data = conversor.getData(json, DataBooksSearch.class);
         DataBook dataBook=null;
@@ -66,36 +109,93 @@ public class Principal {
                 .findFirst();
         if(book.isPresent()){
             dataBook =book.get();
-//            System.out.println(
-//                            "Titulo: " + dataBook.title() +"\n"+
-//                            "Autor: " + dataBook.authors() +"\n"+
-//                            "Idiomas: " + dataBook.languages().get(0) +"\n"+
-//                            "Número de descargas: " + dataBook.numberOfDownloads()
-//                    );
         }else {
-            System.out.println("Libro no encontrado");
+            System.out.println("LIBRO NO ENCONTRADO");
         }
         return dataBook;
     }
 
+
+    private void saveAuthors(DataBook data){
+        if(data != null){
+
+            DataAuthor dataAuthor = data.authors().get(0);
+
+            Author author = new Author(dataAuthor);
+
+            System.out.println(author);
+            authorRepository.save(author);
+        }
+    }
+
     private void searchBookWeb(){
-        DataBook data = searchBookForName();
-        //dataBooks.add(data);
-        Book book = new Book(data);
-        repository.save(book);
-        System.out.println(data);
+        System.out.println("Nombre del libro que desea buscar:");
+        nameBook = scanner.nextLine();
+        Optional<Book> bookInDB = bookRepository.findByTitleContainsIgnoreCase(nameBook);
+        if(bookInDB.isPresent()){
+            System.out.println("### El libro ya se encuentra registrado ###");
+            System.out.println(bookInDB.get());
+        }else {
+
+            DataBook data = searchBookForName();
+            if(data != null){
+            DataAuthor dataAuthor = data.authors().get(0);
+            Book book = new Book(data);
+
+            Optional<Author> aut = authorRepository.findByNameContainsIgnoreCase(dataAuthor.name());
+            if(aut.isPresent()){
+                book.setAuthor(aut.get());
+            }else{
+                Author author = new Author(dataAuthor);
+                authorRepository.save(author);
+                book.setAuthor(author);
+            }
+            //book.setAuthor(author);
+
+            System.out.println(book);
+            bookRepository.save(book);
+        }}
+
+    }
+
+    //    private void searchBookWeb(){
+//        System.out.println("Nombre del libro que desea buscar:");
+//        nameBook = scanner.nextLine();
+//        Optional<Book> bookInDB = bookRepository.findByTitleContainsIgnoreCase(nameBook);
+//        if(bookInDB.isPresent()){
+//            System.out.println(bookInDB.get());
+//        }else {
+//            DataBook data = searchBookForName();
+//            DataAuthor dataAuthor = data.authors().get(0);
+//            Author author = new Author(dataAuthor);
+//            try{
+//                authorRepository.save(author);
+//
+//
+//            }catch (DataIntegrityViolationException | NullPointerException  e){
+//
+//            }
+//            Book book = new Book(data);
+//            book.setAuthor(author);
+//            System.out.println(book);
+//            bookRepository.save(book);
+//        }
+//
+//    }
+
+    private void liveActhors(){
+        System.out.println("Introduce el año de búsqueda: ");
+        var year = scanner.nextInt();
+        List<Author> autores = authorRepository.findAuthorsAliveInYear(year);
+        autores.forEach(System.out::println);
     }
 
     private void getAllBooks() {
-
-        List<Book> books = new ArrayList<>();
-        books = dataBooks.stream()
-                .map(d -> new Book(d))
-                .collect(Collectors.toList());
+        books = bookRepository.findAll();
         books.stream()
                 .sorted(Comparator.comparing(Book::getLanguages))
                 .forEach(System.out::println);
-
-
     }
+
+
 }

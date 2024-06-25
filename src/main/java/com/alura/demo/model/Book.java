@@ -17,8 +17,13 @@ public class Book {
     private Idiom languages;
     private Integer numberOfDownloads;
 
-    @Transient
-    private List<Author> authors;
+    @ManyToOne()
+    @JoinColumn(nullable = false)
+    private Author author;
+
+    public Book() {
+
+    }
 
     public Book(DataBook dataBook) {
         this.title = dataBook.title();
@@ -60,9 +65,19 @@ public class Book {
 
     @Override
     public String toString() {
-        return
-                ", title='" + title + '\'' +
-                ", laguages=" + languages +
-                ", numberOfDownloads=" + numberOfDownloads;
+        return  "---LIBRO---"+"\n" +
+                "Título: " + getTitle() + "\n" +
+                "Autor: " + getAuthor().getName() + "\n" +
+                "Idioma: " + getLanguages() +"\n" +
+                "Número de descargas: " + getNumberOfDownloads()+"\n"+
+                "-------------" + "\n";
+    }
+
+    public Author getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(Author author) {
+        this.author = author;
     }
 }
