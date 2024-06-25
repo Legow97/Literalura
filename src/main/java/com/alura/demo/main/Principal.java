@@ -150,7 +150,6 @@ public class Principal {
                 authorRepository.save(author);
                 book.setAuthor(author);
             }
-            //book.setAuthor(author);
 
             System.out.println(book);
             bookRepository.save(book);
@@ -158,30 +157,6 @@ public class Principal {
 
     }
 
-    //    private void searchBookWeb(){
-//        System.out.println("Nombre del libro que desea buscar:");
-//        nameBook = scanner.nextLine();
-//        Optional<Book> bookInDB = bookRepository.findByTitleContainsIgnoreCase(nameBook);
-//        if(bookInDB.isPresent()){
-//            System.out.println(bookInDB.get());
-//        }else {
-//            DataBook data = searchBookForName();
-//            DataAuthor dataAuthor = data.authors().get(0);
-//            Author author = new Author(dataAuthor);
-//            try{
-//                authorRepository.save(author);
-//
-//
-//            }catch (DataIntegrityViolationException | NullPointerException  e){
-//
-//            }
-//            Book book = new Book(data);
-//            book.setAuthor(author);
-//            System.out.println(book);
-//            bookRepository.save(book);
-//        }
-//
-//    }
 
     private void liveActhors(){
         System.out.println("Introduce el año de búsqueda: ");

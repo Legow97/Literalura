@@ -2,7 +2,6 @@ package com.alura.demo.model;
 
 import jakarta.persistence.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
